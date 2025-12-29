@@ -1,17 +1,48 @@
-# Metron Code Editor - Secure Sandbox Engine
+# Code Editor Backend (FastAPI)
 
-## Overview
-A secure Python execution environment designed to safely run untrusted user code. It uses a multi-layered security approach:
-1. **Application Layer:** Monkey-patching `builtins` to restrict file and network access.
-2. **System Layer:** Dedicated subprocesses with strict timeouts.
-3. **Infrastructure Layer:** Docker containerization with non-root privileges.
+A backend system built using **FastAPI** with a clean and modular structure.  
+Includes API development, test suite, Docker support and a scalable environment setup.  
+Designed with a focus on maintainability, code quality and easy future enhancements.
+
+---
+
+##  Features
+
+- FastAPI based backend with organized folder structure  
+- Modular code under `src/` for easy scalability  
+- API routing & configuration handling  
+- Test cases included under `tests/`  
+- Dockerfile added for containerized deployment  
+- Logging & audit tracking support  
+- Requirements file for easy setup  
+- .gitignore configured to keep repo clean  
+
+---
+
+##  Tech Stack
+
+| Component | Technology |
+|----------|------------|
+| Language | Python |
+| Framework | FastAPI |
+| Dependency Management | pip / requirements.txt |
+| Containerization | Docker |
+| Testing | pytest |
+| Storage | `.db` (SQLite default, extendable to MySQL/Postgres) |
+
+---
 
 ## Project Structure
-- `src/sandbox.py`: The restricted execution environment (The "Prisoner").
-- `src/api.py`: REST API that manages the lifecycle of the sandbox (The "Jailer").
-
-## How to Run
-### 1. Local Development
-```bash
-pip install -r requirements.txt
-python src/api.py
+project/
+├─ src/
+│ ├─ api.py
+│ ├─ config.py
+│ ├─ sandbox.py
+│ ├─ static/
+│ └─ ...
+├─ tests/
+│ └─ test_sandbox.py
+├─ Dockerfile
+├─ requirements.txt
+├─ audit_log.db
+└─ .gitignore
