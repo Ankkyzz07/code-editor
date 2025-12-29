@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metron Security Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --glass: rgba(22, 27, 34, 0.7);
+            --border: rgba(48, 54, 61, 0.6);
+            --primary: #3b82f6; /* Blue */
+            --accent: #10b981;  /* Green */
+            --danger: #ef4444;  /* Red */
+            --text-main: #e4e4e7;
+            --text-muted: #a1a1aa;
+            --console-bg: #0c0c0e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.08), transparent 25%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR (History) --- */
+        .sidebar {
+            width: 280px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.5px;
+        }
+        
+        .history-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            cursor: default;
+        }
+        
+        .history-item:hover { background: rgba(255,255,255,0.05); border-color: var(--border); }
+        .h-status { font-weight: 700; font-size: 0.7rem; margin-bottom: 4px; display: inline-block; padding: 2px 6px; border-radius: 4px; }
+        .st-SUCCESS { color: var(--accent); background: rgba(16, 185, 129, 0.1); }
+        .st-BLOCKED { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        .st-TIMEOUT { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+
+        /* --- MAIN CONTENT --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            position: relative;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 5px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--primary);
+            box-shadow: 0 -2px 10px var(--primary);
+        }
+
+        /* TAB CONTENT AREAS */
+        .view-section { display: none; height: 100%; flex-direction: column; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: flex; }
+
+        /* EDITOR STYLE */
+        .code-container {
+            flex: 1;
+            background: var(--console-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        .code-header {
+            background: rgba(255,255,255,0.03);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .traffic-lights { display: flex; gap: 6px; }
+        .light { width: 10px; height: 10px; border-radius: 50%; }
+        .l-red { background: #ff5f57; } .l-yellow { background: #febc2e; } .l-green { background: #28c840; }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #d4d4d8;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        /* FILE UPLOAD STYLE */
+        .upload-area {
+            flex: 1;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.01);
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+        .upload-icon { font-size: 3rem; margin-bottom: 15px; opacity: 0.7; }
+
+        /* ADMIN PANEL STYLE */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .policy-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .tag { 
+            font-size: 0.75rem; background: rgba(239, 68, 68, 0.15); color: #fca5a5; 
+            padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(239, 68, 68, 0.3);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .tag span { cursor: pointer; font-weight: bold; }
+        .tag span:hover { color: white; }
+
+        /* TERMINAL (Shared) */
+        .terminal {
+            height: 180px;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 20px;
+            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        .terminal-bar {
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: 4px 10px; background: #1a1a1a; color: #666; font-size: 0.7rem; text-transform: uppercase;
+            border-bottom: 1px solid #333;
+        }
+        .term-content { margin-top: 20px; white-space: pre-wrap; color: #a3a3a3; }
+        
+        .t-success { color: #4ade80; }
+        .t-error { color: #f87171; }
+        .t-warn { color: #fbbf24; }
+
+        /* CONTROLS */
+        .controls { display: flex; justify-content: flex-end; margin-top: 15px; gap: 10px; }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.1s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: #27272a; border: 1px solid var(--border); }
+        .btn-secondary:hover { background: #3f3f46; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <span style="color: var(--primary);">🛡️</span> METRON
+        </div>
+        <div class="history-label">Audit Log (Recent)</div>
+        <div id="historyList" class="history-list">
+            <div style="text-align: center; color: #444; margin-top: 20px;">Connecting...</div>
+        </div>
+        <button onclick="loadHistory()" class="btn btn-secondary" style="width:100%; margin-top:10px; justify-content:center; font-size:0.8rem;">↻ Sync</button>
+    </aside>
+
+    <main class="main">
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('editor')">Live Editor</button>
+            <button class="tab-btn" onclick="switchTab('upload')">File Scanner</button>
+            <button class="tab-btn" onclick="switchTab('admin')">Policy Admin</button>
+        </div>
+
+        <div id="view-editor" class="view-section active">
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="traffic-lights"><div class="light l-red"></div><div class="light l-yellow"></div><div class="light l-green"></div></div>
+                    <div style="font-size: 0.8rem; color: #666; font-family: monospace;">sandbox_env.py</div>
+                </div>
+                <textarea id="code" spellcheck="false" placeholder="# Type your Python code here...&#10;import math&#10;print(math.pi)">print("Hello Metron!")</textarea>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="runCode()" id="runBtn">Run Securely ▶</button>
+            </div>
+        </div>
+
+        <div id="view-upload" class="view-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📂</div>
+                <h3 style="color: var(--text-main);">Click to Upload Script</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:5px;">Supports .py files for Static Analysis</p>
+                <input type="file" id="fileInput" accept=".py" onchange="handleFileUpload(this)">
+            </div>
+            <div id="fileNameDisplay" style="text-align: center; margin-bottom: 15px; color: var(--primary); font-weight: bold; display:none;"></div>
+            <div class="controls">
+                <button class="btn" onclick="scanFile()" id="scanBtn" disabled>Start Scan 🔍</button>
+            </div>
+        </div>
+
+        <div id="view-admin" class="view-section">
+            <div class="admin-grid">
+                <div class="policy-card">
+                    <h3 style="font-size:0.9rem; color:var(--text-muted); text-transform:uppercase;">Add Prohibition</h3>
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <input type="text" id="banInput" placeholder="Module name (e.g. pickle)" style="flex:1; background:#000; border:1px solid var(--border); padding:8px; color:#fff; border-radius:4px;">
+                        <button onclick="banModule()" class="btn-secondary" style="padding:8px 15px; cursor:pointer; border-radius:4px;">Add</button>
+                    </div>
+                </div>
+                <div class="policy-card">
+                    <h3 style="font-size:0.9rem; color:var(--text-muted); text-transform:uppercase;">Active Banned Modules</h3>
+                    <div id="tagList" class="tag-cloud">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-bar">System Output / Logs</div>
+            <div id="terminalOutput" class="term-content">Ready...</div>
+        </div>
+
+    </main>
+
+    <script>
+        let fileContent = "";
+
+        // --- TABS LOGIC ---
+        function switchTab(tabId) {
+            // Update Buttons
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update Views
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(`view-${tabId}`).classList.add('active');
+
+            if(tabId === 'admin') loadPolicy();
+        }
+
+        // --- 1. EXECUTION LOGIC ---
+        async function runCode() {
+            const code = document.getElementById('code').value;
+            executePayload(code);
+        }
+
+        async function scanFile() {
+            if(!fileContent) return;
+            executePayload(fileContent);
+        }
+
+        async function executePayload(codeText) {
+            const term = document.getElementById('terminalOutput');
+            term.innerHTML = '<span style="color:#666">Compiling and scanning...</span>';
+            
+            try {
+                const res = await fetch('/execute', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ code: codeText })
+                });
+                const data = await res.json();
+                renderReport(data, res.status);
+                loadHistory(); // Sync Sidebar
+            } catch (e) {
+                term.innerHTML = `<span class="t-error">Connection Failed: ${e.message}</span>`;
+            }
+        }
+
+        function renderReport(data, status) {
+            const term = document.getElementById('terminalOutput');
+            let html = "";
+            const r = data.report || {};
+
+            if (status !== 200) {
+                 html += `<span class="t-error">[SYSTEM ERROR ${status}]</span>\n${data.detail || data.error}`;
+            } else {
+                // Security Alerts
+                if (r.security_alerts && r.security_alerts.length > 0) {
+                    html += `<span class="t-error">🛑 SECURITY THREATS DETECTED:</span>\n`;
+                    r.security_alerts.forEach(a => html += `   > ${a}\n`);
+                    html += `\n`;
+                } 
+                // Runtime Errors
+                else if (r.error) {
+                    html += `<span class="t-warn">⚠️ RUNTIME EXCEPTION:</span>\n${r.error}\n`;
+                } 
+                // Success
+                else {
+                    html += `<span class="t-success">✅ EXECUTION SUCCESSFUL</span>\n`;
+                    html += `----------------------------------\n`;
+                    html += r.output ? r.output : "(No standard output)";
+                }
+            }
+            term.innerHTML = html;
+        }
+
+        // --- 2. FILE UPLOAD LOGIC ---
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                fileContent = e.target.result;
+                document.getElementById('fileNameDisplay').style.display = 'block';
+                document.getElementById('fileNameDisplay').innerText = `Selected: ${file.name}`;
+                document.getElementById('scanBtn').disabled = false;
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 3. ADMIN & HISTORY LOGIC ---
+        async function loadHistory() {
+            const list = document.getElementById('historyList');
+            try {
+                const res = await fetch('/history');
+                const logs = await res.json();
+                list.innerHTML = "";
+                logs.forEach(l => {
+                    let st = l.status.split('_')[0]; // Simplify status
+                    let colorClass = `st-${st}`;
+                    list.innerHTML += `
+                        <div class="history-item">
+                            <div class="h-status ${colorClass}">● ${l.status}</div>
+                            <div style="color:#666">${new Date(l.timestamp).toLocaleTimeString()}</div>
+                        </div>`;
+                });
+            } catch(e) { console.log(e); }
+        }
+
+        async function loadPolicy() {
+            const res = await fetch('/admin/policy');
+            const data = await res.json();
+            const container = document.getElementById('tagList');
+            container.innerHTML = '';
+            data.banned_modules.forEach(m => {
+                container.innerHTML += `<div class="tag">${m} <span onclick="unban('${m}')">×</span></div>`;
+            });
+        }
+
+        async function banModule() {
+            const val = document.getElementById('banInput').value;
+            if(!val) return;
+            await fetch('/admin/ban_module', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({item:val})});
+            document.getElementById('banInput').value = "";
+            loadPolicy();
+        }
+
+        async function unban(name) {
+            await fetch('/admin/unban_module', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({item:name})});
+            loadPolicy();
+        }
+
+        // Init
+        loadHistory();
+    </script>
+</body>
+</html>

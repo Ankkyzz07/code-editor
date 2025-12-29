@@ -1,0 +1,18 @@
+ {
+    "max_cpu_time": 2,
+    "max_memory_mb": 128,
+    "banned_modules": [
+        "os",
+        "subprocess",
+        "socket",
+        "requests",
+        "sys",
+        "shutil",
+        "pickle"
+    ],
+    "blocked_files": [
+        "/etc/passwd",
+        ".env",
+        "id_rsa"
+    ]
+}
